@@ -1,61 +1,169 @@
+import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Shirt, Sparkles, ShoppingBag } from 'lucide-react';
+import { Sparkles, Search, ShoppingBag, CheckCircle } from 'lucide-react';
 import { useWardrobe } from '../context/WardrobeContext';
 import WeatherWidget, { useWeatherData } from '../components/weather/WeatherWidget';
 import AIStylist from '../components/ai/AIStylist';
+import ClosetRail from '../components/home/ClosetRail';
+import Modal from '../components/ui/Modal';
+import { Button } from '../components/ui/Button';
+import { Tag, StatusTag } from '../components/ui/Tag';
+import { CATEGORY_EMOJI } from '../constants/categories';
+
+// The closet is organised into boutique racks. Tops/outerwear hang on rails,
+// footwear/accessories rest on shelves — like an open Zara-style wardrobe.
+const RAILS = [
+  { key: 'Top', label: 'Tops', emoji: '👕', variant: 'rail' },
+  { key: 'Outerwear', label: 'Outerwear', emoji: '🧥', variant: 'rail' },
+  { key: 'Bottom', label: 'Bottoms', emoji: '👖', variant: 'rail' },
+  { key: 'Footwear', label: 'Footwear', emoji: '👟', variant: 'shelf' },
+  { key: 'Accessory', label: 'Accessories', emoji: '⌚', variant: 'shelf' },
+];
 
 export default function Home() {
-  const { items, outfits, shoppingList } = useWardrobe();
+  const { items, shoppingList, markWorn } = useWardrobe();
   const weather = useWeatherData();
-
-  const cleanItems = items.filter(i => i.status === 'Clean').length;
-  const toBuy = shoppingList.filter(i => i.status === 'ToBuy').length;
+  const [query, setQuery] = useState('');
+  const [styleOpen, setStyleOpen] = useState(false);
+  const [selected, setSelected] = useState(null);
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 
+  const cleanItems = items.filter(i => i.status === 'Clean').length;
+  const toBuy = shoppingList.filter(i => i.status === 'ToBuy').length;
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return items;
+    return items.filter(i =>
+      [i.name, i.brand, i.color_primary, i.category, ...(i.occasion || [])]
+        .filter(Boolean).some(v => String(v).toLowerCase().includes(q))
+    );
+  }, [items, query]);
+
+  const grouped = useMemo(() => {
+    const map = {};
+    for (const r of RAILS) map[r.key] = [];
+    for (const it of filtered) (map[it.category] || (map[it.category] = [])).push(it);
+    return map;
+  }, [filtered]);
+
+  async function handleWorn(item) {
+    await markWorn(item.id);
+    setSelected(null);
+  }
+
   return (
     <div className="flex flex-col min-h-screen lg:min-h-0 bg-bg lg:rounded-2xl lg:overflow-hidden lg:border lg:border-border lg:shadow-sm">
-      {/* Header */}
-      <div className="bg-primary text-white px-5 pt-12 pb-6 lg:pt-8 lg:rounded-t-2xl">
-        <div className="flex items-center justify-between mb-5">
+      {/* Boutique header */}
+      <div className="bg-primary text-white px-5 pt-12 pb-5 lg:pt-8 lg:rounded-t-2xl">
+        <div className="flex items-center justify-between mb-4">
           <div>
-            <p className="text-white/60 text-xs uppercase tracking-wider mb-0.5">{greeting}</p>
-            <h1 className="text-2xl font-bold">What to wear?</h1>
+            <p className="text-white/50 text-xs uppercase tracking-[2px] mb-0.5">{greeting}</p>
+            <h1 className="text-2xl font-bold tracking-tight">My Closet</h1>
+            <p className="text-white/60 text-xs mt-1">{items.length} pieces · {cleanItems} ready to wear</p>
           </div>
-          <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center text-xl">
-            👔
-          </div>
+          <button
+            onClick={() => setStyleOpen(true)}
+            className="flex flex-col items-center gap-1 bg-white/10 rounded-2xl px-3 py-2 active:scale-95 transition-transform"
+          >
+            <Sparkles size={18} className="text-accent-light" />
+            <span className="text-[10px] font-semibold">Style me</span>
+          </button>
         </div>
 
         <WeatherWidget />
-      </div>
 
-      {/* Quick stats */}
-      <div className="grid grid-cols-3 gap-3 px-4 py-4">
-        <StatCard icon={<Shirt size={18} />} label="Clean items" value={cleanItems} to="/wardrobe" />
-        <StatCard icon={<Sparkles size={18} />} label="Outfits" value={outfits.length} to="/outfits" />
-        <StatCard icon={<ShoppingBag size={18} />} label="To buy" value={toBuy} to="/shop" />
-      </div>
-
-      {/* AI Stylist */}
-      <div className="px-4 pb-6">
-        <div className="flex items-center gap-2 mb-3">
-          <span className="text-base">✨</span>
-          <h2 className="text-sm font-bold text-primary">AI Outfit Suggestions</h2>
+        {/* Search the rack */}
+        <div className="mt-4 flex items-center gap-2 bg-white/10 rounded-xl px-3 py-2">
+          <Search size={15} className="text-white/50" />
+          <input
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="Search your closet…"
+            className="bg-transparent flex-1 text-sm placeholder-white/40 focus:outline-none text-white"
+          />
         </div>
-        <AIStylist weather={weather} />
       </div>
+
+      {/* The open closet */}
+      <div className="py-4 flex-1">
+        {items.length === 0 ? (
+          <EmptyCloset />
+        ) : filtered.length === 0 ? (
+          <p className="text-center text-sm text-muted py-16 px-6">No pieces match "{query}".</p>
+        ) : (
+          RAILS.map(r => (
+            <ClosetRail
+              key={r.key}
+              label={r.label}
+              emoji={r.emoji}
+              variant={r.variant}
+              items={grouped[r.key] || []}
+              onItemClick={setSelected}
+            />
+          ))
+        )}
+
+        {/* Shortcuts */}
+        <div className="grid grid-cols-2 gap-3 px-4 mt-2">
+          <Link to="/outfits" className="bg-surface rounded-2xl p-3 shadow-sm flex items-center gap-2 active:scale-95 transition-transform">
+            <Sparkles size={16} className="text-accent" />
+            <span className="text-xs font-semibold text-primary">My Outfits</span>
+          </Link>
+          <Link to="/shop" className="bg-surface rounded-2xl p-3 shadow-sm flex items-center gap-2 active:scale-95 transition-transform">
+            <ShoppingBag size={16} className="text-accent" />
+            <span className="text-xs font-semibold text-primary">To buy ({toBuy})</span>
+          </Link>
+        </div>
+      </div>
+
+      {/* Style-me sheet */}
+      <Modal open={styleOpen} onClose={() => setStyleOpen(false)} title="✨ Style me">
+        <AIStylist weather={weather} />
+      </Modal>
+
+      {/* Quick item peek */}
+      <Modal open={!!selected} onClose={() => setSelected(null)} title={selected?.name || 'Item'}>
+        {selected && (
+          <div className="flex flex-col gap-3">
+            <div className="w-full aspect-square rounded-2xl bg-accent-light flex items-center justify-center overflow-hidden">
+              {selected.image_url
+                ? <img src={selected.image_url} alt={selected.name} className="w-full h-full object-contain" />
+                : <span className="text-6xl">{CATEGORY_EMOJI[selected.category] || '👔'}</span>}
+            </div>
+            {selected.brand && <p className="text-xs text-muted -mb-1">{selected.brand}</p>}
+            <div className="flex flex-wrap gap-1.5">
+              <StatusTag status={selected.status} />
+              {selected.color_primary && <Tag>{selected.color_primary}</Tag>}
+              {selected.fit_type && <Tag>{selected.fit_type}</Tag>}
+              {selected.occasion?.slice(0, 2).map(o => <Tag key={o}>{o}</Tag>)}
+            </div>
+            <div className="flex gap-2 mt-1">
+              {selected.status === 'Clean' && (
+                <Button onClick={() => handleWorn(selected)} className="flex-1">
+                  <CheckCircle size={15} className="inline mr-1 -mt-0.5" /> Wore it today
+                </Button>
+              )}
+              <Link to="/wardrobe" className="flex-1">
+                <Button variant="secondary" className="w-full">Open in wardrobe</Button>
+              </Link>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
 
-function StatCard({ icon, label, value, to }) {
+function EmptyCloset() {
   return (
-    <Link to={to} className="bg-surface rounded-2xl p-3 shadow-sm flex flex-col items-center gap-1 active:scale-95 transition-transform">
-      <div className="text-accent">{icon}</div>
-      <p className="text-lg font-extrabold text-primary">{value}</p>
-      <p className="text-[10px] text-muted text-center leading-tight">{label}</p>
-    </Link>
+    <div className="flex flex-col items-center justify-center text-center px-8 py-16">
+      <span className="text-6xl mb-3">🚪</span>
+      <h3 className="text-base font-bold text-primary mb-1">Your closet is empty</h3>
+      <p className="text-sm text-muted mb-4">Add your first piece and watch the rack fill up.</p>
+      <Link to="/wardrobe"><Button>Add an item</Button></Link>
+    </div>
   );
 }

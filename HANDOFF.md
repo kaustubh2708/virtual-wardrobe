@@ -38,35 +38,58 @@ A personal React PWA that acts as a digital wardrobe manager with AI styling. It
 
 ---
 
-## What Is Planned (Phase 2 — Stub Pages Exist, Not Implemented)
+## Phase 2 — Built ✅ (was planned, now shipped)
 
-All four pages below already exist as route stubs in `src/pages/`. The nav links to them. They render a placeholder UI. The work is building them out.
+All three stub pages are now fully functional, plus a redesigned home page.
+
+### 0. ZARA-style "open closet" home page (`src/pages/Home.jsx`)
+Boutique-rack UI. Garments hang from SVG hangers on wooden rails
+(`src/components/home/ClosetRail.jsx` + `HangingItem.jsx`), grouped by category;
+footwear/accessories use a "shelf" variant instead of hangers. Includes closet
+search, a "Style me" sheet (AIStylist in a modal), and a quick item-peek modal
+with "Wore it today". `RAILS` config in Home.jsx controls the rows/variants.
 
 ### 1. Calendar / Outfit Planner (`src/pages/Calendar.jsx`)
-Plan outfits for specific upcoming dates (events, trips, work week). Drag-to-assign outfits to calendar days. Key ideas:
-- Simple monthly calendar grid — no heavy library needed, build it with CSS Grid
-- Each day cell: tap → pick an outfit from a picker modal
-- Data model: `planned_outfits` table in Supabase (or localStorage key `planned_outfits: [{date, outfitId}]`)
-- Stretch: Gemini suggests outfit for day based on weather forecast + occasion
+Monthly CSS-grid calendar, tap a day → pick/assign/clear an outfit. Today is
+highlighted. Plans persist via `src/lib/planStore.js` (`getPlans`/`setPlan`).
+Day cells show a 2×2 thumbnail of the assigned outfit's items.
 
 ### 2. MoodBoard (`src/pages/MoodBoard.jsx`)
-Pinterest-style inspiration board for style goals. Key ideas:
-- User pastes image URLs or uploads photos
-- Gemini analyses a moodboard image and extracts a palette / style keywords → feeds into stylist prompt
-- Canvas or CSS grid layout; drag to reorder
-- Stretch: "Shop the look" → cross-references with user's wardrobe gaps
+Masonry inspiration grid. Add via image URL or upload (stored as data URL).
+Optional **Gemini** "Analyse style" extracts a hex palette + style keywords +
+vibe summary (`MOOD_SCHEMA`). Persist via `planStore` (`getMoodBoard` etc.).
+Note: URL images may fail CORS on analysis; uploads always work.
 
 ### 3. Travel Packing (`src/pages/Travel.jsx`)
-Smart packing list generator for trips. Key ideas:
-- User inputs destination, trip duration, trip type (business / casual / beach / etc.)
-- Gemini recommends a capsule wardrobe from the user's actual items (structured output: list of item IDs)
-- Checklist UI: tap to mark packed
-- Generates a flat-lay collage of the recommended capsule
+Form (destination, days, trip type) → **Gemini** picks a capsule from the user's
+clean wardrobe + essentials + a packing tip (`TRIP_SCHEMA`). Fuzzy-matches
+suggested names back to real items (`matchItem`). Packing checklist with persisted
+checked state, saved-trips chips, and a flat-lay of the capsule (`buildFlatLay`).
+Trips persist via `planStore` (`getTrips`/`saveTrip`/`removeTrip`).
 
-### 4. Outfit of the Day (OOTD) Auto-Flat-Lay Save
-When user logs "Wore this today" on an outfit, automatically generate and persist the flat-lay as the outfit's cover image (instead of regenerating each time the detail opens).
-- Call `buildFlatLay()` on first log; store data URL in `outfit.cover_image`
-- `OutfitDetail.jsx` checks `outfit.cover_image` before re-running canvas
+**Persistence note:** Phase 2 data (plans, moodboard, trips) uses `planStore.js`
+= localStorage always, in both demo and cloud mode. Future upgrade: mirror to
+Supabase tables (`planned_outfits`, `moodboard`, `trips`) keyed by `user_id` —
+the read/write API in planStore.js can stay identical.
+
+## What Is Planned (Phase 3 — Not Yet Built)
+
+### OOTD Auto-Flat-Lay Save
+When user logs "Wore this today" on an outfit, generate and persist the flat-lay
+as the outfit's cover image instead of regenerating each open. Call
+`buildFlatLay()` on first log; store data URL in `outfit.flatlay_image_url` (the
+field already exists on the outfit object); `OutfitDetail.jsx` checks it first.
+
+### Editable profile
+Settings profile rows are hardcoded — wire to `updateProfile()` with form inputs
+so the AI prompts personalise from real stored values.
+
+### Weather-aware calendar suggestions
+In Calendar, use the weather forecast + occasion to have Gemini pre-suggest an
+outfit for upcoming days.
+
+### Supabase-backed Phase 2 tables
+Move planStore data server-side (see persistence note above) for cross-device sync.
 
 ---
 
