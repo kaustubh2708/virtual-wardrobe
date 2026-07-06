@@ -8,7 +8,10 @@ export default function AppLayout() {
     <div className="flex min-h-screen bg-bg">
       <Sidebar />
 
-      <div className="flex-1 flex flex-col min-h-screen lg:min-w-0">
+      {/* min-w-0 at every size: without it this flex item refuses to shrink below
+          its content width, so wide horizontal rails stretch the page instead of
+          scrolling internally. */}
+      <div className="flex-1 flex flex-col min-h-screen min-w-0">
         {DEMO_MODE && (
           <div className="bg-amber-100 border-b border-amber-200 px-4 py-1.5 text-center sticky top-0 z-30">
             <p className="text-[10px] text-amber-800 font-bold tracking-wide">
