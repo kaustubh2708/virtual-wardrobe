@@ -25,7 +25,7 @@ export default function ClosetRail({ label, emoji, items, variant = 'rail', onIt
 
         <div className="flex gap-1.5 overflow-x-auto pt-1.5 pb-2 px-4 snap-x scrollbar-hide">
           {items.map((item, i) => (
-            <HangingItem key={item.id} item={item} index={i} variant={variant} onItemClick={onItemClick} onClick={onItemClick} />
+            <HangingItem key={item.id} item={item} index={i} variant={variant} onClick={onItemClick} />
           ))}
 
           {/* Add-more hanger at the end of the rack */}

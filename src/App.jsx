@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { UserProvider, useUser } from './context/UserContext';
 import { WardrobeProvider } from './context/WardrobeContext';
 import AppLayout from './components/ui/AppLayout';
@@ -13,6 +14,14 @@ import Calendar from './pages/Calendar';
 import MoodBoard from './pages/MoodBoard';
 import Travel from './pages/Travel';
 import Settings from './pages/Settings';
+
+// SPA route changes keep the old scroll position by default — reset to top so
+// switching tabs never lands you mid-page.
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
+  return null;
+}
 
 function AppRoutes() {
   const { session, loading } = useUser();
@@ -54,6 +63,7 @@ function AppRoutes() {
 export default function App() {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <UserProvider>
         <AppRoutes />
       </UserProvider>

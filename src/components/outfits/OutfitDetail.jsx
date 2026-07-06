@@ -6,7 +6,7 @@ import { Tag } from '../ui/Tag';
 import { CATEGORY_EMOJI } from '../../constants/categories';
 import { buildFlatLay } from '../../lib/collage';
 
-export default function OutfitDetail({ outfit, open, onClose, onDelete, onMarkWorn }) {
+export default function OutfitDetail({ outfit, open, onClose, onDelete, onMarkWorn, onSaveFlatLay }) {
   const [flatLay, setFlatLay] = useState(null);
   const [building, setBuilding] = useState(false);
   const [worn, setWorn] = useState(false);
@@ -17,10 +17,20 @@ export default function OutfitDetail({ outfit, open, onClose, onDelete, onMarkWo
     setWorn(false);
     setFlatLay(null);
     if (!open || !outfit) return;
+    // A previously saved cover skips the canvas rebuild entirely.
+    if (outfit.flatlay_image_url) {
+      setFlatLay(outfit.flatlay_image_url);
+      return;
+    }
     let alive = true;
     setBuilding(true);
-    buildFlatLay(items)
-      .then((url) => { if (alive) setFlatLay(url); })
+    // 700px keeps the stored data URL small enough for localStorage/DB rows.
+    buildFlatLay(items, 700)
+      .then((url) => {
+        if (!alive) return;
+        setFlatLay(url);
+        if (url) onSaveFlatLay?.(outfit.id, url); // persist as the outfit's cover
+      })
       .catch(() => {})
       .finally(() => { if (alive) setBuilding(false); });
     return () => { alive = false; };

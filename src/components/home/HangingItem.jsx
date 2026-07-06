@@ -6,15 +6,23 @@ export default function HangingItem({ item, index = 0, variant = 'rail', onClick
   const emoji = CATEGORY_EMOJI[item.category] || '👔';
   const tilt = ((index % 3) - 1) * 1.5; // -1.5°, 0°, +1.5°
   const swatch = item.color_primary ? COLOUR_MAP[item.color_primary] : null;
+  // Anything not Clean is out of rotation — show it faded with a laundry chip
+  // so the rack honestly reflects what's ready to wear.
+  const away = item.status && item.status !== 'Clean';
 
   const Garment = (
     <div
-      className="w-full aspect-[3/4] rounded-lg bg-accent-light overflow-hidden shadow-sm ring-1 ring-border/60 group-active:scale-95 transition-transform"
+      className={`relative w-full aspect-[3/4] rounded-lg bg-accent-light overflow-hidden shadow-sm ring-1 ring-border/60 group-active:scale-95 transition-transform ${away ? 'opacity-45 grayscale-[35%]' : ''}`}
     >
       {item.image_url ? (
         <img src={item.image_url} alt={item.name} loading="lazy" className="w-full h-full object-contain" />
       ) : (
         <div className="w-full h-full flex items-center justify-center text-4xl">{emoji}</div>
+      )}
+      {away && (
+        <span className="absolute bottom-1 left-1 bg-primary/75 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full">
+          🧺 {item.status === 'Worn' ? 'Worn' : item.status}
+        </span>
       )}
     </div>
   );

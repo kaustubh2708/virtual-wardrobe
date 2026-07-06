@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Sparkles, Search, ShoppingBag, CheckCircle } from 'lucide-react';
+import { Sparkles, Search, ShoppingBag, CheckCircle, Scissors } from 'lucide-react';
 import { useWardrobe } from '../context/WardrobeContext';
+import { removeBgSmart, blobToDataUrl } from '../lib/bgRemove';
 import WeatherWidget, { useWeatherData } from '../components/weather/WeatherWidget';
 import AIStylist from '../components/ai/AIStylist';
 import ClosetRail from '../components/home/ClosetRail';
@@ -21,11 +22,13 @@ const RAILS = [
 ];
 
 export default function Home() {
-  const { items, shoppingList, markWorn } = useWardrobe();
+  const { items, shoppingList, markWorn, updateItem } = useWardrobe();
   const weather = useWeatherData();
   const [query, setQuery] = useState('');
   const [styleOpen, setStyleOpen] = useState(false);
   const [selected, setSelected] = useState(null);
+  const [cutting, setCutting] = useState(false);
+  const [cutError, setCutError] = useState('');
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
@@ -52,6 +55,24 @@ export default function Home() {
   async function handleWorn(item) {
     await markWorn(item.id);
     setSelected(null);
+  }
+
+  // Turn the item's stock/product photo into a transparent garment cutout,
+  // entirely in-browser. Remote CDN images need CORS headers; when a host
+  // blocks that, we surface a hint to re-shoot instead of failing silently.
+  async function handleCutout(item) {
+    setCutting(true);
+    setCutError('');
+    try {
+      const blob = await removeBgSmart(item.image_url);
+      const dataUrl = await blobToDataUrl(blob);
+      await updateItem(item.id, { image_url: dataUrl, needs_photo: false });
+      setSelected({ ...item, image_url: dataUrl });
+    } catch {
+      setCutError("This store blocks image access, so it can't be cut out automatically. Take/upload your own photo in Wardrobe and use “Clean up background” there.");
+    } finally {
+      setCutting(false);
+    }
   }
 
   return (
@@ -125,7 +146,7 @@ export default function Home() {
       </Modal>
 
       {/* Quick item peek */}
-      <Modal open={!!selected} onClose={() => setSelected(null)} title={selected?.name || 'Item'}>
+      <Modal open={!!selected} onClose={() => { setSelected(null); setCutError(''); }} title={selected?.name || 'Item'}>
         {selected && (
           <div className="flex flex-col gap-3">
             <div className="w-full aspect-square rounded-2xl bg-accent-light flex items-center justify-center overflow-hidden">
@@ -140,6 +161,12 @@ export default function Home() {
               {selected.fit_type && <Tag>{selected.fit_type}</Tag>}
               {selected.occasion?.slice(0, 2).map(o => <Tag key={o}>{o}</Tag>)}
             </div>
+            {selected.image_url && !selected.image_url.startsWith('data:') && (
+              <Button variant="secondary" onClick={() => handleCutout(selected)} loading={cutting} className="w-full">
+                <Scissors size={14} className="inline mr-1 -mt-0.5" /> Cut out garment (remove background)
+              </Button>
+            )}
+            {cutError && <p className="text-xs text-red-500">{cutError}</p>}
             <div className="flex gap-2 mt-1">
               {selected.status === 'Clean' && (
                 <Button onClick={() => handleWorn(selected)} className="flex-1">

@@ -24,6 +24,12 @@ export default function Outfits() {
     });
   }
 
+  // Persist the first built flat-lay as the outfit's cover, so cards show it
+  // and reopening the detail never rebuilds the canvas.
+  async function handleSaveFlatLay(id, url) {
+    try { await updateOutfit(id, { flatlay_image_url: url }); } catch { /* cover is a nice-to-have */ }
+  }
+
   // Keep the open detail view in sync with the latest outfit data.
   const activeOutfit = detail ? outfits.find((o) => o.id === detail.id) || detail : null;
 
@@ -75,6 +81,7 @@ export default function Outfits() {
         onClose={() => setDetail(null)}
         onDelete={handleDelete}
         onMarkWorn={handleMarkWorn}
+        onSaveFlatLay={handleSaveFlatLay}
       />
     </div>
   );

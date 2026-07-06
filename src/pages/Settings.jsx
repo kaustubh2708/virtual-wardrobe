@@ -1,10 +1,13 @@
 import { useState } from 'react';
 import { useUser } from '../context/UserContext';
 import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui/Input';
+import { Input, Select } from '../components/ui/Input';
 import { uploadImage } from '../lib/supabase';
 import { DEMO_MODE } from '../lib/demoMode';
 import { fileToDataUrl } from '../lib/localStore';
+
+const BUILDS = ['Lean', 'Athletic', 'Average', 'Broad', 'Heavyset'];
+const SKIN_TONES = ['Fair', 'Wheatish', 'Dusky', 'Deep'];
 
 export default function Settings() {
   const { profile, updateProfile, signOut, session } = useUser();
@@ -12,6 +15,31 @@ export default function Settings() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [saved, setSaved] = useState(false);
+
+  // Editable profile — these feed the AI stylist prompts, so keeping them
+  // accurate directly improves suggestion quality.
+  const [form, setForm] = useState({
+    height_cm: profile?.height_cm ?? 185,
+    weight_kg: profile?.weight_kg ?? 73,
+    build: profile?.build ?? 'Lean',
+    skin_tone: profile?.skin_tone ?? 'Wheatish',
+    city: profile?.city ?? 'Delhi',
+  });
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileSaved, setProfileSaved] = useState(false);
+  const set = (key) => (e) => setForm(f => ({ ...f, [key]: e.target.value }));
+
+  async function handleProfileSave() {
+    setProfileSaving(true);
+    await updateProfile({
+      ...form,
+      height_cm: Number(form.height_cm) || null,
+      weight_kg: Number(form.weight_kg) || null,
+    });
+    setProfileSaving(false);
+    setProfileSaved(true);
+    setTimeout(() => setProfileSaved(false), 2000);
+  }
 
   async function handleSave() {
     setSaving(true);
@@ -47,19 +75,26 @@ export default function Settings() {
       </div>
 
       <div className="px-4 py-4 flex flex-col gap-4">
-        {/* Profile */}
+        {/* Profile — feeds the AI stylist, so keep it accurate */}
         <div className="bg-surface rounded-2xl p-4 shadow-sm">
-          <p className="text-[10px] uppercase tracking-[1.5px] text-muted font-bold mb-3">My Profile</p>
-          <div className="grid grid-cols-2 gap-2 text-sm">
-            <ProfileRow label="Height" value="185 cm" />
-            <ProfileRow label="Weight" value="73 kg" />
-            <ProfileRow label="Build" value="Lean" />
-            <ProfileRow label="Skin tone" value="Wheatish" />
-            <ProfileRow label="Shirt" value="40" />
-            <ProfileRow label="T-shirt" value="M oversized / L" />
-            <ProfileRow label="Pants" value="32×32" />
-            <ProfileRow label="City" value="Delhi" />
+          <p className="text-[10px] uppercase tracking-[1.5px] text-muted font-bold mb-1">My Profile</p>
+          <p className="text-xs text-muted mb-3">The AI stylist personalises every suggestion to these.</p>
+          <div className="grid grid-cols-2 gap-3">
+            <Input label="Height (cm)" type="number" value={form.height_cm} onChange={set('height_cm')} />
+            <Input label="Weight (kg)" type="number" value={form.weight_kg} onChange={set('weight_kg')} />
+            <Select label="Build" value={form.build} onChange={set('build')}>
+              {BUILDS.map(b => <option key={b}>{b}</option>)}
+            </Select>
+            <Select label="Skin tone" value={form.skin_tone} onChange={set('skin_tone')}>
+              {SKIN_TONES.map(s => <option key={s}>{s}</option>)}
+            </Select>
+            <div className="col-span-2">
+              <Input label="City" value={form.city} onChange={set('city')} />
+            </div>
           </div>
+          <Button onClick={handleProfileSave} loading={profileSaving} className="w-full mt-3">
+            {profileSaved ? '✓ Saved' : 'Save Profile'}
+          </Button>
         </div>
 
         {/* Reference photo for try-on */}
@@ -114,11 +149,3 @@ export default function Settings() {
   );
 }
 
-function ProfileRow({ label, value }) {
-  return (
-    <div>
-      <p className="text-[10px] text-muted uppercase tracking-wide">{label}</p>
-      <p className="text-sm font-bold text-primary">{value}</p>
-    </div>
-  );
-}
