@@ -5,7 +5,7 @@ import { CATEGORY_EMOJI, COLOUR_MAP } from '../../constants/categories';
 // (shelf variant). Rail garments pivot from the hook (transform-origin at the
 // hanger) and swing with the rail's scroll spring — each with a slightly
 // different factor so a packed rack sways organically, not in lockstep.
-export default function HangingItem({ item, index = 0, variant = 'rail', stacked = false, swing, onClick }) {
+export default function HangingItem({ item, index = 0, variant = 'rail', stacked = false, focused = false, swing, onClick }) {
   const emoji = CATEGORY_EMOJI[item.category] || '👔';
   const tilt = ((index % 3) - 1) * 1.5; // -1.5°, 0°, +1.5°
   const swatch = item.color_primary ? COLOUR_MAP[item.color_primary] : null;
@@ -53,6 +53,10 @@ export default function HangingItem({ item, index = 0, variant = 'rail', stacked
             transformOrigin: '50% 10px', // pivot at the hanger hook on the rail
             transformPerspective: 700,
           }}
+          // Focused garment slides forward off the rail — like pulling a hanger
+          // out to look at the piece — then springs back when focus moves on.
+          animate={focused ? { scale: 1.14, y: 10 } : { scale: 1, y: 0 }}
+          transition={{ type: 'spring', stiffness: 260, damping: 22 }}
         >
           {/* Hanger — hook crosses the rail above */}
           <svg width="60" height="38" viewBox="0 0 64 40" className="relative z-10 -mb-2">

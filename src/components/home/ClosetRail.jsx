@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { useMotionValue, useSpring } from 'framer-motion';
@@ -11,16 +11,36 @@ import HangingItem from './HangingItem';
 export default function ClosetRail({ label, emoji, items, variant = 'rail', onItemClick }) {
   const stacked = variant === 'rail';
 
+  // Which garment is "in focus": popped to the front, fully visible, while its
+  // neighbours stay stacked behind. Desktop sets it on hover; mobile sets it to
+  // whichever garment is nearest the viewport centre while side-scrolling.
+  const [focus, setFocus] = useState(null);
+  const hovering = useRef(false);
+
   // Scroll velocity → swing angle. The raw value snaps with each scroll event;
   // the spring (low damping) turns that into a pendulum wobble that dies out.
   const swingRaw = useMotionValue(0);
   const swing = useSpring(swingRaw, { stiffness: 170, damping: 9, mass: 0.8 });
   const lastLeft = useRef(null);
   const settle = useRef(null);
+  const rafPending = useRef(false);
+
+  function focusNearestCentre(el) {
+    const mid = el.scrollLeft + el.clientWidth / 2;
+    let best = null, bestDist = Infinity;
+    // children = item wrappers (+ trailing Add link, skipped via dataset check)
+    for (const child of el.children) {
+      if (child.dataset.index === undefined) continue;
+      const d = Math.abs(child.offsetLeft + child.offsetWidth / 2 - mid);
+      if (d < bestDist) { bestDist = d; best = Number(child.dataset.index); }
+    }
+    setFocus(best);
+  }
 
   function handleScroll(e) {
     if (!stacked) return;
-    const left = e.currentTarget.scrollLeft;
+    const el = e.currentTarget;
+    const left = el.scrollLeft;
     if (lastLeft.current !== null) {
       const dx = left - lastLeft.current;
       // Content moves opposite the drag; hanging clothes trail behind it.
@@ -29,6 +49,12 @@ export default function ClosetRail({ label, emoji, items, variant = 'rail', onIt
     lastLeft.current = left;
     clearTimeout(settle.current);
     settle.current = setTimeout(() => { swingRaw.set(0); lastLeft.current = null; }, 90);
+
+    // Touch scrolling has no hover — spotlight whatever passes the centre.
+    if (!hovering.current && !rafPending.current) {
+      rafPending.current = true;
+      requestAnimationFrame(() => { rafPending.current = false; focusNearestCentre(el); });
+    }
   }
 
   if (!items?.length) return null;
@@ -50,13 +76,20 @@ export default function ClosetRail({ label, emoji, items, variant = 'rail', onIt
         ) : null}
 
         <div
-          className={`flex overflow-x-auto pt-1.5 px-4 scrollbar-hide ${stacked ? 'pb-4' : 'gap-1.5 pb-2 snap-x'}`}
+          className={`flex overflow-x-auto pt-1.5 px-4 scrollbar-hide ${stacked ? 'pb-8' : 'gap-1.5 pb-2 snap-x'}`}
           style={stacked ? { perspective: '700px' } : undefined}
           onScroll={handleScroll}
         >
           {items.map((item, i) => (
-            <div key={item.id} className={stacked && i > 0 ? '-ml-9' : ''} style={stacked ? { zIndex: items.length - i } : undefined}>
-              <HangingItem item={item} index={i} variant={variant} stacked={stacked} swing={swing} onClick={onItemClick} />
+            <div
+              key={item.id}
+              data-index={i}
+              className={stacked && i > 0 ? '-ml-9' : ''}
+              style={stacked ? { zIndex: focus === i ? 300 : items.length - i } : undefined}
+              onMouseEnter={stacked ? () => { hovering.current = true; setFocus(i); } : undefined}
+              onMouseLeave={stacked ? () => { hovering.current = false; setFocus(null); } : undefined}
+            >
+              <HangingItem item={item} index={i} variant={variant} stacked={stacked} focused={stacked && focus === i} swing={swing} onClick={onItemClick} />
             </div>
           ))}
 

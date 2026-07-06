@@ -84,6 +84,10 @@ the read/write API in planStore.js can stay identical.
   their hangers* while scrolling: scroll velocity → underdamped spring
   (`ClosetRail.jsx`), per-item swing factor + rotateY fan for fake 3D depth
   (`HangingItem.jsx`). Labels hidden on stacked rails (peek modal has them).
+- **Focus spotlight** — hover (desktop) or nearest-centre-while-scrolling
+  (mobile) pops a garment forward: scale 1.14 + y-offset spring, zIndex 300
+  (`focus` state in ClosetRail, `focused` prop in HangingItem). Note: scroll
+  events/rAF are suspended in hidden tabs, so this can't be tested headlessly.
 - **min-w-0 fix in AppLayout** — without it, mobile horizontal rails stretched
   the page instead of scrolling. Do not remove.
 
@@ -98,7 +102,12 @@ store CDN CORS blocks). Key learnings baked into the script:
   cutting those keeps the model, which looked wrong).
 - AJIO blocks non-browser fetches (returns placeholder bytes) → the two Puma
   AJIO items (seed-16, seed-20) keep remote thumbnails / emoji.
-- `SEED_VERSION` bumped to 3 — existing localStorage re-syncs image/notes.
+- `SEED_VERSION` is 4 — existing localStorage re-syncs image/notes/colour on
+  version bump, and **appends seed items added in newer versions** (see
+  `WardrobeContext.fetchAll`). Owner-confirmed colours: pleated pants black,
+  half-zip beige, lambswool grey, ankle pants olive, AIRism tee owned twice
+  (seed-7 cream/off-white + seed-23 olive), henley black (grey flat cutout
+  darkened via sharp — no black flat exists on Uniqlo's CDN).
 - Runtime "Cut out garment" button (Home peek modal) remains for user-added
   photos; hidden for `data:`/`/cutouts/` images. `removeBgSmart()` in
   `bgRemove.js` falls back through two CORS proxies for remote images.

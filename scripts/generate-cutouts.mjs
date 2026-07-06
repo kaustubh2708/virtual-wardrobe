@@ -22,7 +22,8 @@ const SOURCES = {
   'seed-4': 'https://image.uniqlo.com/UQ/ST3/AsianCommon/imagesgoods/462197/item/goods_09_462197_3x4.jpg', // black — owned colour
   'seed-5': 'https://image.uniqlo.com/UQ/ST3/AsianCommon/imagesgoods/479134/item/goods_57_479134_3x4.jpg', // olive — owned colour
   'seed-6': 'https://image.uniqlo.com/UQ/ST3/AsianCommon/imagesgoods/475361/item/goods_08_475361_3x4.jpg', // dark grey — closest flat to owned black
-  'seed-7': 'https://image.uniqlo.com/UQ/ST3/AsianCommon/imagesgoods/465185/item/goods_70_465185_3x4.jpg', // light grey flat
+  'seed-7': 'https://image.uniqlo.com/UQ/ST3/AsianCommon/imagesgoods/465185/item/goods_70_465185_3x4.jpg', // off-white/cream flat — owned colour
+  'seed-23': 'https://image.uniqlo.com/UQ/ST3/AsianCommon/imagesgoods/465185/item/goods_57_465185_3x4.jpg', // olive flat — second AIRism tee the owner has
   'seed-8': 'https://image.uniqlo.com/UQ/ST3/AsianCommon/imagesgoods/477814/item/goods_27_477814_3x4.jpg',
   'seed-10': 'https://assets.adidas.com/images/w_600,f_auto,q_auto/c5eb1caf2f7f42648f7d12bfd38b7540_9366/Ligra_8_Indoor_Shoes_White_IH8118.jpg',
   'seed-11': 'https://images-static.nykaa.com/media/catalog/product/6/1/619b283bq2261-3p-1.jpg',

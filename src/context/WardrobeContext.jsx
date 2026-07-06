@@ -63,8 +63,14 @@ export function WardrobeProvider({ children }) {
         items = items.map(item => {
           const fresh = seedMap.get(item.id);
           if (!fresh) return item;
-          return { ...item, image_url: fresh.image_url, needs_photo: fresh.needs_photo, notes: fresh.notes };
+          return { ...item, image_url: fresh.image_url, needs_photo: fresh.needs_photo, notes: fresh.notes, color_primary: fresh.color_primary };
         });
+        // Seed items added in newer versions won't exist in older localStorage —
+        // append them so the closet stays complete.
+        const have = new Set(items.map(i => i.id));
+        for (const fresh of SEED_WARDROBE) {
+          if (!have.has(fresh.id)) items.push(fresh);
+        }
         saveLocal('items', items);
         saveLocal('seedVersion', SEED_VERSION);
       }
