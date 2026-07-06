@@ -161,7 +161,7 @@ export default function Home() {
               {selected.fit_type && <Tag>{selected.fit_type}</Tag>}
               {selected.occasion?.slice(0, 2).map(o => <Tag key={o}>{o}</Tag>)}
             </div>
-            {selected.image_url && !selected.image_url.startsWith('data:') && (
+            {selected.image_url && !selected.image_url.startsWith('data:') && !selected.image_url.startsWith('/cutouts/') && (
               <Button variant="secondary" onClick={() => handleCutout(selected)} loading={cutting} className="w-full">
                 <Scissors size={14} className="inline mr-1 -mt-0.5" /> Cut out garment (remove background)
               </Button>
