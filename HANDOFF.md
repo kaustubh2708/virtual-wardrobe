@@ -1,181 +1,123 @@
-# Virtual Wardrobe — Handoff Document
+# Virtual Wardrobe — Context Handoff
 
-> **For the next Claude Code session.** Read this + CLAUDE.md before touching any code.
-
----
-
-## Project Overview
-
-A personal React PWA that acts as a digital wardrobe manager with AI styling. It is a **personal project** — not for sale, not scaling. The owner deploys to Vercel; API keys live in Vercel env vars. Client-side `VITE_*` exposure is acceptable.
-
-**Live repo:** https://github.com/kaustubh2708/virtual-wardrobe  
-**Stack:** React 19 + Vite 8 + Tailwind 3 + React Router 7 + Framer Motion 12  
-**AI:** Google Gemini (free AI Studio key) — **never re-introduce Anthropic/Claude API**  
-**Storage:** Supabase free tier (cloud) **or** localStorage (demo mode, no keys needed)
+> **For the next Claude Code session (or future me).** Read this + CLAUDE.md
+> before touching code. This is the definitive record of what exists, why it
+> looks the way it does, and what's next. Last updated: 2026-07-07.
 
 ---
 
-## What Is Fully Built (Phase 1 — Shipped)
+## 1. What This Project Is
 
-| Feature | Files | Status |
-|---|---|---|
-| Full wardrobe CRUD (items, outfits, shopping list) | `src/pages/Wardrobe.jsx`, `WardrobeContext.jsx` | ✅ |
-| Photo-first AI intake — Gemini vision auto-tags on upload | `AddItemModal.jsx`, `src/lib/gemini.js`, `prompts.js` | ✅ |
-| In-browser background removal (ONNX, no API cost) | `src/lib/bgRemove.js` | ✅ |
-| AI outfit suggestions grounded in wear history | `src/components/ai/AIStylist.jsx`, `prompts.js` | ✅ |
-| "Save as Outfit" from AI suggestion | `AIStylist.jsx` → `addOutfit()` | ✅ |
-| Outfit detail modal + flat-lay canvas collage | `src/components/outfits/OutfitDetail.jsx`, `src/lib/collage.js` | ✅ |
-| "Wore this today" wear logging | `OutfitDetail.jsx` → `updateOutfit()` | ✅ |
-| Insights: cost-per-wear, colour story, occasion coverage | `src/pages/Insights.jsx` | ✅ |
-| Insights: "Gathering Dust" panel (never/long-idle items) | `Insights.jsx`, `wardrobeUtils.js` | ✅ |
-| Insights: Gemini-powered wardrobe gap analysis | `Insights.jsx` | ✅ |
-| Weather widget (OpenWeather API, optional) | `src/components/weather/WeatherWidget.jsx` | ✅ |
-| PWA — installable, home-screen, service worker | `vite.config.js`, `index.html` | ✅ |
-| Demo mode (localStorage, seeded wardrobe, no keys needed) | `src/lib/demoMode.js`, `localStore.js` | ✅ |
-| Supabase auth + cloud sync | `src/lib/supabase.js`, `UserContext.jsx` | ✅ |
-| Settings: profile, reference photo, monthly budget | `src/pages/Settings.jsx` | ✅ |
-| Shopping list with cost tracking | `src/pages/Shopping.jsx` | ✅ |
+A personal mobile-first PWA: digital wardrobe manager + AI stylist for one
+user (Kaustubh, Delhi). **Personal project — never scaling, never selling.**
+Deployed target: Vercel (not yet deployed). Keys go in Vercel env vars;
+client-side `VITE_*` exposure is accepted.
 
----
+**Repo:** https://github.com/kaustubh2708/virtual-wardrobe (main branch, all work pushed)
+**Stack:** React 19 · Vite 8 · Tailwind 3 · React Router 7 · Framer Motion 12
+**AI:** Google Gemini free tier (AI Studio key) — **never re-introduce Anthropic/Claude API**
+**Data:** Supabase free tier (optional) OR localStorage demo mode (current default)
 
-## Phase 2 — Built ✅ (was planned, now shipped)
-
-All three stub pages are now fully functional, plus a redesigned home page.
-
-### 0. ZARA-style "open closet" home page (`src/pages/Home.jsx`)
-Boutique-rack UI. Garments hang from SVG hangers on wooden rails
-(`src/components/home/ClosetRail.jsx` + `HangingItem.jsx`), grouped by category;
-footwear/accessories use a "shelf" variant instead of hangers. Includes closet
-search, a "Style me" sheet (AIStylist in a modal), and a quick item-peek modal
-with "Wore it today". `RAILS` config in Home.jsx controls the rows/variants.
-
-### 1. Calendar / Outfit Planner (`src/pages/Calendar.jsx`)
-Monthly CSS-grid calendar, tap a day → pick/assign/clear an outfit. Today is
-highlighted. Plans persist via `src/lib/planStore.js` (`getPlans`/`setPlan`).
-Day cells show a 2×2 thumbnail of the assigned outfit's items.
-
-### 2. MoodBoard (`src/pages/MoodBoard.jsx`)
-Masonry inspiration grid. Add via image URL or upload (stored as data URL).
-Optional **Gemini** "Analyse style" extracts a hex palette + style keywords +
-vibe summary (`MOOD_SCHEMA`). Persist via `planStore` (`getMoodBoard` etc.).
-Note: URL images may fail CORS on analysis; uploads always work.
-
-### 3. Travel Packing (`src/pages/Travel.jsx`)
-Form (destination, days, trip type) → **Gemini** picks a capsule from the user's
-clean wardrobe + essentials + a packing tip (`TRIP_SCHEMA`). Fuzzy-matches
-suggested names back to real items (`matchItem`). Packing checklist with persisted
-checked state, saved-trips chips, and a flat-lay of the capsule (`buildFlatLay`).
-Trips persist via `planStore` (`getTrips`/`saveTrip`/`removeTrip`).
-
-**Persistence note:** Phase 2 data (plans, moodboard, trips) uses `planStore.js`
-= localStorage always, in both demo and cloud mode. Future upgrade: mirror to
-Supabase tables (`planned_outfits`, `moodboard`, `trips`) keyed by `user_id` —
-the read/write API in planStore.js can stay identical.
-
-## Polish Pass — Built ✅
-
-- **ScrollToTop** on route change (`App.jsx`) — SPA kept old scroll position.
-- **Laundry states on the rack** — non-Clean items render faded with a 🧺 chip.
-- **Flat-lay covers persist** — first build saves to `outfit.flatlay_image_url`
-  via `onSaveFlatLay` (OutfitDetail → Outfits.jsx); cards show it, no rebuilds.
-- **Editable profile** in Settings (height/weight/build/skin tone/city) via
-  `updateProfile()`; the AI stylist prompts read these values.
-- **Physics rack** — rail garments overlap like a packed closet and *swing on
-  their hangers* while scrolling: scroll velocity → underdamped spring
-  (`ClosetRail.jsx`), per-item swing factor + rotateY fan for fake 3D depth
-  (`HangingItem.jsx`). Labels hidden on stacked rails (peek modal has them).
-- **Focus spotlight** — hover (desktop) or nearest-centre-while-scrolling
-  (mobile) pops a garment forward: scale 1.14 + y-offset spring, zIndex 300
-  (`focus` state in ClosetRail, `focused` prop in HangingItem). Note: scroll
-  events/rAF are suspended in hidden tabs, so this can't be tested headlessly.
-- **min-w-0 fix in AppLayout** — without it, mobile horizontal rails stretched
-  the page instead of scrolling. Do not remove.
-
-## Garment Cutouts (seed data) ✅
-
-Seed items now ship with **pre-cut transparent garment PNGs** in
-`public/cutouts/seed-N.png`, generated by `scripts/generate-cutouts.mjs`
-(`@imgly/background-removal-node`, devDependency; server-side fetch dodges
-store CDN CORS blocks). Key learnings baked into the script:
-- Uniqlo `goods_XX_<id>` colour codes were probed per product to find **flat
-  garment-only shots in the owned colour** (many codes are on-model photos —
-  cutting those keeps the model, which looked wrong).
-- AJIO blocks non-browser fetches (returns placeholder bytes) → the two Puma
-  AJIO items (seed-16, seed-20) keep remote thumbnails / emoji.
-- `SEED_VERSION` is 4 — existing localStorage re-syncs image/notes/colour on
-  version bump, and **appends seed items added in newer versions** (see
-  `WardrobeContext.fetchAll`). Owner-confirmed colours: pleated pants black,
-  half-zip beige, lambswool grey, ankle pants olive, AIRism tee owned twice
-  (seed-7 cream/off-white + seed-23 olive), henley black (grey flat cutout
-  darkened via sharp — no black flat exists on Uniqlo's CDN).
-- Runtime "Cut out garment" button (Home peek modal) remains for user-added
-  photos; hidden for `data:`/`/cutouts/` images. `removeBgSmart()` in
-  `bgRemove.js` falls back through two CORS proxies for remote images.
-
-## What Is Planned (Phase 3 — Not Yet Built)
-
-### User re-shoots wardrobe photos
-The owner plans to photograph items and replace stock cutouts over time
-(AddItemModal photo → "Clean up background" flow already supports this).
-
-### Weather-aware calendar suggestions
-In Calendar, use the weather forecast + occasion to have Gemini pre-suggest an
-outfit for upcoming days.
-
-### Supabase-backed Phase 2 tables
-Move planStore data server-side (see persistence note above) for cross-device sync.
+### Hard constraints (owner-set)
+- Free tools only. No paid APIs in the default path.
+- Gemini via **raw fetch** (`src/lib/gemini.js`), no SDK.
+- Gemini `responseSchema` types are **UPPERCASE** (`STRING`, `ARRAY`, `OBJECT`…). Schemas live in `src/lib/prompts.js`.
+- `@imgly/background-removal` stays **dynamically imported** (24 MB ONNX out of main bundle).
+- ONNX excluded from SW precache (`vite.config.js` `globIgnores: ['**/ort*', '**/*.wasm']`).
+- Every context method branches `if (DEMO_MODE) { localStorage } else { supabase }`.
 
 ---
 
-## Key Architectural Constraints to Preserve
+## 2. Feature Inventory (all shipped & pushed)
 
-1. **No Anthropic API** — `anthropic.js` was deleted intentionally. CLAUDE.md documents this.
-2. **Gemini only via raw fetch** — no SDK (`@google/generative-ai` not installed). All calls go through `src/lib/gemini.js` → `callGemini()` / `callGeminiJSON()`.
-3. **Gemini `responseSchema` uses UPPERCASE types** — `STRING`, `ARRAY`, `OBJECT`, `NUMBER`, `BOOLEAN`. Lowercase fails silently. All schemas live in `src/lib/prompts.js`.
-4. **Background removal is dynamically imported** — `@imgly/background-removal` uses `import()` inside `removeBg()` to keep the 24 MB ONNX runtime out of the initial bundle. Never move it to a top-level import.
-5. **ONNX excluded from SW precache** — `vite.config.js` `globIgnores: ['**/ort*', '**/*.wasm']`. Don't remove these.
-6. **Demo mode check before every Supabase call** — `if (DEMO_MODE) { /* localStorage path */ } else { /* supabase path */ }`. Pattern is consistent across all context files.
+### Core (Phase 1)
+- Wardrobe/outfits/shopping CRUD — `WardrobeContext.jsx` (reducer + optimistic updates)
+- Photo-first AI intake: upload → Gemini vision auto-tags name/category/colour/fabric/fit/occasion/season (`AddItemModal.jsx`, enums constrained via `ITEM_TAG_SCHEMA`)
+- In-browser background removal button in AddItemModal (`bgRemove.js`)
+- AI stylist grounded in wear history (favours under-worn clean items) + "Save as Outfit" fuzzy-match (`AIStylist.jsx`)
+- Insights: cost-per-wear, colour story, occasion coverage, "Gathering Dust" dead-stock panel, Gemini gap analysis (`Insights.jsx`, `wardrobeUtils.js`)
+- Weather widget (OpenWeather, optional key)
+- PWA: installable, service worker, manifest (`vite.config.js`, `index.html`)
+- Supabase auth + sync (schema in `supabase_migration.sql`) — untested live, demo mode is the daily driver
+
+### Phase 2
+- **ZARA-style open-closet Home** (`Home.jsx`): boutique racks per category. Tops/Outerwear/Bottoms hang from SVG hangers on wooden rails; Footwear/Accessories sit on shelves. Closet search, "Style me" modal (AIStylist), item peek modal with "Wore it today" + cutout button.
+- **Calendar** (`Calendar.jsx`): monthly grid, tap day → assign outfit, 2×2 outfit thumbnails, persists via `planStore.js`.
+- **MoodBoard** (`MoodBoard.jsx`): masonry board, URL/upload, Gemini palette + style-keyword analysis (`MOOD_SCHEMA`). URL images may fail CORS on analysis; uploads always work.
+- **Travel** (`Travel.jsx`): destination/days/type → Gemini capsule from *owned clean items* (`TRIP_SCHEMA`, name fuzzy-match), essentials checklist with persisted ticks, capsule flat-lay, saved trips.
+- Phase 2 persistence = `src/lib/planStore.js` → **localStorage always** (both modes). Upgrade path documented in the file header.
+
+### Polish pass
+- `ScrollToTop` on route change (`App.jsx`) — tabs used to keep old scroll position.
+- Laundry honesty: non-Clean items faded + 🧺 chip on rails (`HangingItem.jsx`).
+- Flat-lay auto-persists as outfit cover on first build (`OutfitDetail.jsx` → `onSaveFlatLay` → `updateOutfit({flatlay_image_url})`); cards use it; no rebuild on reopen.
+- Settings profile fully editable (height/weight/build/skin tone/city) → `updateProfile()`; stylist prompts read these (`buildStylistSystemPrompt(profile)`).
+- **`min-w-0` on AppLayout's flex column** — CRITICAL: without it, mobile horizontal rails stretch the page instead of scrolling. Do not remove.
+
+### Physics rack + spotlight (the fun part)
+- Rail garments **overlap like a packed rack** (`-ml-9`, leftmost on top) and **swing on their hangers while scrolling**: scroll velocity → `useMotionValue` → underdamped `useSpring` (stiffness 170, damping 9) in `ClosetRail.jsx`; each garment applies its own 0.75–1.25× factor + rotateY fan (fake 3D depth, `transformPerspective`) in `HangingItem.jsx`, pivoting at the hanger hook (`transformOrigin: '50% 10px'`).
+- **Focus spotlight**: desktop hover OR (mobile) garment nearest viewport centre while scrolling springs forward — `scale 1.14, y 10, zIndex 300` — neighbours stay stacked. `focus` state + `data-index` + `focusNearestCentre()` in ClosetRail.
+- Labels hidden on stacked rails; the peek modal carries name/tags/actions.
+
+### Garment cutouts (seed data)
+- `public/cutouts/seed-N.png` — 13 transparent garment PNGs, ≤700px, generated by **`scripts/generate-cutouts.mjs`** (`node scripts/generate-cutouts.mjs`; deps `@imgly/background-removal-node` + `sharp`, devDependencies).
+- Server-side fetch bypasses store-CDN CORS blocks (browser fetches fail for most stores).
+- **Uniqlo trick:** `imagesgoods/<id>/item/goods_<colourCode>_<id>_3x4.jpg` on `AsianCommon` — some codes are flat garment-only shots, others are on-model. Codes were probed per product to find the flat shot in the *owned* colour. `sub/goods_<id>_sub14_3x4.jpg` is often a flat-lay too (default colour only).
+- **Henley exception:** no black flat exists → the grey flat cutout was darkened (`sharp.modulate({brightness:0.4})`).
+- **AJIO blocks all non-browser fetches** (placeholder bytes at any size) → the two Puma items (seed-16, seed-20) keep remote thumbnails until the owner photographs them.
+- Bewakoof tee (seed-15) is a back-view model cutout (shows the panda print) — fine interim.
+- Runtime "Cut out garment" button (Home peek) remains for user photos; hidden for `data:`/`/cutouts/` images; `removeBgSmart()` falls back through weserv.nl → allorigins proxies.
+
+### Seed data & sync rules (`src/data/seedWardrobe.js` + `WardrobeContext.fetchAll`)
+- `SEED_VERSION = 4`. On version bump, existing localStorage gets `image_url`, `needs_photo`, `notes`, `color_primary` re-synced **and missing seed items appended** — user edits (status, wear counts, custom items) untouched.
+- Owner-confirmed colours (2026-07-07): pleated pants **black**, souffle half-zip **beige**, lambswool **grey**, ankle pants **olive**, henley **black**, AIRism tee owned **twice** — seed-7 **cream/off-white** + seed-23 **olive/sage**.
+- 9 items have no photo yet (emoji placeholders). **Owner will re-photograph items over time** and replace via AddItemModal → "Clean up background".
 
 ---
 
-## Environment Variables
+## 3. AI Layer Cheat Sheet
+
+- `callGeminiJSON({ system, prompt, image, schema, temperature })` in `gemini.js` — always pass a schema. Default model `gemini-2.5-flash` (`VITE_GEMINI_MODEL` overrides).
+- Schemas: `OUTFIT_SCHEMA`, `GAP_SCHEMA`, `ITEM_TAG_SCHEMA` (prompts.js), `MOOD_SCHEMA` (MoodBoard.jsx), `TRIP_SCHEMA` (Travel.jsx).
+- Prompts are profile-aware: `buildStylistSystemPrompt(profile)` / `buildGapSystemPrompt(profile)` merge over `DEFAULT_PROFILE`; wardrobe prompts embed per-item wear counts.
+- **Key status:** a working key sits in local `.env` (gitignored). It was pasted into a chat transcript once — owner was told to rotate it at aistudio.google.com/apikey. Verified working for text + structured output. **Image generation (gemini-2.5-flash-image) is quota-blocked on this free key** — generative garment extraction is not currently possible.
+- DeepSeek was evaluated and rejected (no free API tier, no vision on main API, weaker structured output). Decision: stay on Gemini.
+
+## 4. Environment
 
 ```
-VITE_GEMINI_API_KEY=       # Required for AI features. Free key: aistudio.google.com/apikey
-VITE_GEMINI_MODEL=         # Optional. Defaults to gemini-2.5-flash
-VITE_SUPABASE_URL=         # Optional. Without it, app runs in demo/localStorage mode
-VITE_SUPABASE_ANON_KEY=    # Optional. Paired with URL above
-VITE_OPENWEATHER_KEY=      # Optional. Weather widget falls back to manual input without it
-VITE_REPLICATE_API_KEY=    # Optional, paid. Photorealistic try-on (not the default)
+VITE_GEMINI_API_KEY=       # in local .env (rotate it!). Free: aistudio.google.com/apikey
+VITE_GEMINI_MODEL=         # optional, default gemini-2.5-flash
+VITE_SUPABASE_URL=         # blank → demo mode (current state)
+VITE_SUPABASE_ANON_KEY=
+VITE_OPENWEATHER_API_KEY=  # blank → manual weather
+VITE_REPLICATE_API_KEY=    # optional PAID try-on, not part of free stack
 ```
 
----
+Commands: `npm run dev` (5173) · `npm run build` · `npm run lint` · `node scripts/generate-cutouts.mjs`
 
-## Known Lint Warnings (Pre-existing, Non-blocking)
+## 5. Known Quirks & Gotchas
 
-There are 11 ESLint warnings from `eslint-plugin-react-hooks@7` rules (`react-hooks/exhaustive-deps`, `react-hooks/rules-of-hooks`) spread across the original context files and Shopping/ItemCard components. None affect build or runtime — Vite builds cleanly. Do not fix these unless the user specifically asks; they're in code that predates the Phase 1 rebuild and fixing them risks subtle regressions.
+- **~12 pre-existing lint errors** (react-hooks 7 strict rules, `set-state-in-effect`, context export patterns). None break build/runtime. Don't fix unless asked.
+- **Hidden-tab testing:** scroll events + rAF are suspended in hidden browser tabs — swing/spotlight can't be verified headlessly; take a screenshot first (activates tab), then run scroll evals.
+- Stale vite processes sometimes hold port 5173 — `lsof -ti:5173 | xargs kill` before `preview_start`.
+- `sharp` install needs `SHARP_IGNORE_GLOBAL_LIBVIPS=1` on this machine (Homebrew libvips breaks source build).
+- Flat-lay canvas export fails silently on cross-origin images without CORS (returns null) — local `/cutouts/` images always work.
+- Modal state-reset pattern uses `useEffect` on `open` — matches original codebase style.
 
----
+## 6. Roadmap (agreed with owner)
 
-## Running Locally
+1. **Owner re-photographs wardrobe** over time; stock cutouts are interim. The two AJIO Puma items + 9 emoji items need this most.
+2. **Weather-aware calendar suggestions** — Gemini pre-suggests outfits for upcoming days using forecast + occasion.
+3. **Supabase go-live** — run `supabase_migration.sql`, add env keys, test cloud mode end-to-end (never been exercised live). Then mirror planStore data (planned_outfits/moodboard/trips tables) for cross-device sync.
+4. **Vercel deploy** — framework preset Vite, add `VITE_*` env vars. README documents the serverless-proxy upgrade if keys ever need hiding.
+5. Owner floated "full wardrobe" as a phrase — scope not yet defined; ask before assuming.
 
-```bash
-npm install
-cp .env.example .env    # fill in VITE_GEMINI_API_KEY at minimum
-npm run dev             # http://localhost:5173
-```
+## 7. Session History (condensed)
 
-Build + PWA check:
-```bash
-npm run build           # generates dist/ with SW
-npx serve dist          # test SW locally
-```
-
----
-
-## Owner Profile (for AI prompt personalisation)
-
-Height: 185 cm · Weight: 73 kg · Build: Lean · Skin tone: Wheatish  
-Shirt: 40 · T-shirt: M oversized / L · Pants: 32×32 · City: Delhi  
-These values are currently hardcoded in `src/pages/Settings.jsx` `ProfileRow` components.  
-Phase 2 could make them editable and store them in `profile` via `updateProfile()`.
+1. **Rebuild:** replaced Anthropic with Gemini free tier; added photo AI intake, bg removal, PWA, usage-grounded stylist, flat-lay collages; wrote README/CLAUDE.md; pushed initial repo.
+2. **Phase 2:** ZARA open-closet home, Calendar, MoodBoard, Travel, planStore.
+3. **Polish:** scroll fix, laundry states, flat-lay covers, editable profile; verified Gemini key live; DeepSeek evaluated & rejected.
+4. **Physics rack:** swing-on-scroll springs, stacked overlap, fake-3D fan; found & fixed the AppLayout `min-w-0` mobile scroll bug.
+5. **Cutouts:** offline batch pipeline, Uniqlo colour-code probing, AJIO dead-end, seed sync v3.
+6. **Colour corrections + spotlight:** owner-confirmed colours, second AIRism tee (seed-23), henley darkened to black, append-on-sync, hover/centre focus spotlight, seed v4. ← *most recent commit `9839b07`*
